@@ -1,40 +1,57 @@
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-/**
- * Worker-side implementation of the remote task service.
- */
-public class TaskServiceImpl extends UnicastRemoteObject implements TaskService {
+public class TaskServiceImpl extends UnicastRemoteObject
+        implements TaskService {
 
-    // Constructor required to handle RemoteException
-    public TaskServiceImpl() throws RemoteException {
+    private final String nodeId;
+    private final String nodeName;
+
+    public TaskServiceImpl(String nodeId, String nodeName)
+            throws RemoteException {
+
         super();
+
+        this.nodeId = nodeId;
+        this.nodeName = nodeName;
     }
 
     @Override
     public String executeTask(String taskType, String input)
             throws RemoteException {
 
-        System.out.println("Worker received task:");
+        System.out.println();
+        System.out.println("--------------------------------------");
+        System.out.println("TASK RECEIVED");
+        System.out.println("Node ID   : " + nodeId);
+        System.out.println("Node Name : " + nodeName);
         System.out.println("Task Type : " + taskType);
         System.out.println("Input     : " + input);
 
+        String result;
+
         if ("WORD_COUNT".equalsIgnoreCase(taskType)) {
-            int count = input == null || input.trim().isEmpty()
-                    ? 0
-                    : input.trim().split("\\s+").length;
 
-            String result = "Word Count = " + count;
-            System.out.println("Worker computed: " + result);
-            return result;
+            int count = 0;
+
+            if (input != null && !input.trim().isEmpty()) {
+                count = input.trim().split("\\s+").length;
+            }
+
+            result = "Word Count = " + count;
+
+        } else if ("UPPERCASE".equalsIgnoreCase(taskType)) {
+
+            result = input == null ? "" : input.toUpperCase();
+
+        } else {
+
+            result = "Unknown task type: " + taskType;
         }
 
-        if ("UPPERCASE".equalsIgnoreCase(taskType)) {
-            String result = input == null ? "" : input.toUpperCase();
-            System.out.println("Worker computed: " + result);
-            return result;
-        }
+        System.out.println("Result    : " + result);
+        System.out.println("--------------------------------------");
 
-        return "Unknown task type: " + taskType;
+        return nodeName + " (" + nodeId + ") -> " + result;
     }
 }
