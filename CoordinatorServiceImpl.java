@@ -1,8 +1,8 @@
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CoordinatorServiceImpl
         extends java.rmi.server.UnicastRemoteObject
@@ -10,9 +10,16 @@ public class CoordinatorServiceImpl
 
     private final List<WorkerInfo> workers;
 
-    private int nextWorkerIndex = 0;
+    /*
+     * Thread-safe counter.
+     *
+     * Multiple client threads can call the
+     * coordinator at the same time.
+     */
+    private final AtomicInteger nextWorker = new AtomicInteger(0);
 
-    public CoordinatorServiceImpl(List<WorkerInfo> workers)
+    public CoordinatorServiceImpl(
+            List<WorkerInfo> workers)
             throws RemoteException {
 
         super();
@@ -21,70 +28,83 @@ public class CoordinatorServiceImpl
     }
 
     @Override
-    public synchronized String submitTask(
+    public String submitTask(
+            String taskId,
             String taskType,
             String input)
             throws RemoteException {
 
         if (workers.isEmpty()) {
+
             return "No workers available.";
         }
 
         System.out.println();
-        System.out.println("======================================");
-        System.out.println("COORDINATOR RECEIVED TASK");
-        System.out.println("Task Type : " + taskType);
-        System.out.println("Input     : " + input);
-        System.out.println("======================================");
+        System.out.println(
+                "------------------------------------------");
+
+        System.out.println(
+                "[COORDINATOR] TASK RECEIVED");
+
+        System.out.println(
+                "Task ID   : " + taskId);
+
+        System.out.println(
+                "Task Type : " + taskType);
+
+        /*
+         * Select next worker using thread-safe
+         * round-robin scheduling.
+         */
+        int startIndex = Math.floorMod(
+                nextWorker.getAndIncrement(),
+                workers.size());
 
         int attempts = 0;
 
         while (attempts < workers.size()) {
 
-            WorkerInfo worker = workers.get(nextWorkerIndex);
+            int index = (startIndex + attempts)
+                    % workers.size();
 
-            nextWorkerIndex = (nextWorkerIndex + 1) % workers.size();
+            WorkerInfo worker = workers.get(index);
 
             attempts++;
 
             try {
 
                 System.out.println(
-                        "Assigning task to: "
-                                + worker.name
-                                + " (" + worker.nodeId + ")");
+                        "[COORDINATOR] "
+                                + taskId
+                                + " -> "
+                                + worker.name);
 
                 Registry registry = LocateRegistry.getRegistry(
                         "localhost",
                         worker.port);
 
-                TaskService taskService = (TaskService) registry.lookup("TaskService");
+                TaskService taskService = (TaskService) registry.lookup(
+                        "TaskService");
 
-                String result = taskService.executeTask(
+                return taskService.executeTask(
+                        taskId,
                         taskType,
                         input);
-
-                System.out.println(
-                        "Task completed by: "
-                                + worker.name);
-
-                return result;
 
             } catch (Exception e) {
 
                 System.out.println(
-                        "Worker unavailable: "
+                        "[COORDINATOR] Worker unavailable: "
                                 + worker.name);
 
                 System.out.println(
-                        "Trying next worker...");
+                        "[COORDINATOR] Trying next worker...");
             }
         }
 
         return "All workers are currently unavailable.";
     }
 
-    // Stores information about one worker
     public static class WorkerInfo {
 
         String nodeId;
