@@ -31,7 +31,8 @@ public class NodeServer {
                         // START RMI REGISTRY
                         // ------------------------------------------
 
-                        Registry registry = LocateRegistry.createRegistry(port);
+                        Registry registry =
+                                        LocateRegistry.createRegistry(port);
 
                         System.out.println(
                                         "[RMI] Registry started on port " + port);
@@ -40,9 +41,10 @@ public class NodeServer {
                         // TASK SERVICE
                         // ------------------------------------------
 
-                        TaskService taskService = new TaskServiceImpl(
-                                        nodeName,
-                                        nodeId);
+                        TaskService taskService =
+                                        new TaskServiceImpl(
+                                                        nodeName,
+                                                        nodeId);
 
                         registry.rebind(
                                         "TaskService",
@@ -55,9 +57,10 @@ public class NodeServer {
                         // CLOCK SERVICE
                         // ------------------------------------------
 
-                        ClockService clockService = new ClockServiceImpl(
-                                        nodeName,
-                                        0L);
+                        ClockService clockService =
+                                        new ClockServiceImpl(
+                                                        nodeName,
+                                                        0L);
 
                         registry.rebind(
                                         "ClockService",
@@ -70,9 +73,10 @@ public class NodeServer {
                         // ELECTION SERVICE
                         // ------------------------------------------
 
-                        ElectionService electionService = new ElectionServiceImpl(
-                                        nodeId,
-                                        nodeName);
+                        ElectionService electionService =
+                                        new ElectionServiceImpl(
+                                                        nodeId,
+                                                        nodeName);
 
                         registry.rebind(
                                         "ElectionService",
@@ -80,6 +84,20 @@ public class NodeServer {
 
                         System.out.println(
                                         "[RMI] ElectionService registered.");
+
+                        // ------------------------------------------
+                        // DATA SERVICE
+                        // ------------------------------------------
+
+                        DataService dataService =
+                                        new DataServiceImpl();
+
+                        registry.rebind(
+                                        "DataService",
+                                        dataService);
+
+                        System.out.println(
+                                        "[RMI] DataService registered.");
 
                         // ------------------------------------------
                         // NODE INFORMATION
@@ -104,6 +122,7 @@ public class NodeServer {
                         System.out.println("  [OK] TaskService");
                         System.out.println("  [OK] ClockService");
                         System.out.println("  [OK] ElectionService");
+                        System.out.println("  [OK] DataService");
 
                         System.out.println();
                         System.out.println(
