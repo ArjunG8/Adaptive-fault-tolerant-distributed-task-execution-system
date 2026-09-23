@@ -1,135 +1,126 @@
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.List;
 
 public class NodeServer {
 
-    public static void main(String[] args) {
+        public static void main(String[] args) {
 
-        try {
+                if (args.length < 3) {
+                        System.out.println(
+                                        "Usage: java NodeServer <NodeName> <NodeId> <Port>");
+                        return;
+                }
 
-            if (args.length < 3) {
+                String nodeName = args[0];
+                String nodeId = args[1];
+                int port = Integer.parseInt(args[2]);
 
-                System.out.println(
-                        "Usage: java NodeServer "
-                                + "<nodeId> <nodeName> <port>");
+                try {
 
-                return;
-            }
+                        System.out.println();
+                        System.out.println("==============================================");
+                        System.out.println("      TECHNOVA DISTRIBUTED TASK SYSTEM");
+                        System.out.println("==============================================");
 
-            String nodeId = args[0];
-            String nodeName = args[1];
-            int port = Integer.parseInt(args[2]);
+                        System.out.println("Starting Node...");
+                        System.out.println("Node Name : " + nodeName);
+                        System.out.println("Node ID   : " + nodeId);
+                        System.out.println("Port      : " + port);
 
-            // --------------------------------------
-            // Create Worker Service
-            // --------------------------------------
+                        // ------------------------------------------
+                        // START RMI REGISTRY
+                        // ------------------------------------------
 
-            TaskService worker = new TaskServiceImpl(
-                    nodeId,
-                    nodeName);
+                        Registry registry = LocateRegistry.createRegistry(port);
 
-            // --------------------------------------
-            // Create RMI Registry
-            // --------------------------------------
+                        System.out.println(
+                                        "[RMI] Registry started on port " + port);
 
-            Registry registry = LocateRegistry.createRegistry(port);
+                        // ------------------------------------------
+                        // TASK SERVICE
+                        // ------------------------------------------
 
-            // --------------------------------------
-            // Register Worker Service
-            // --------------------------------------
+                        TaskService taskService = new TaskServiceImpl(
+                                        nodeName,
+                                        nodeId);
 
-            registry.rebind(
-                    "TaskService",
-                    worker);
+                        registry.rebind(
+                                        "TaskService",
+                                        taskService);
 
-            System.out.println();
-            System.out.println(
-                    "======================================");
+                        System.out.println(
+                                        "[RMI] TaskService registered.");
 
-            System.out.println(
-                    "NODE STARTED");
+                        // ------------------------------------------
+                        // CLOCK SERVICE
+                        // ------------------------------------------
 
-            System.out.println(
-                    "Node ID   : " + nodeId);
+                        ClockService clockService = new ClockServiceImpl(
+                                        nodeName,
+                                        0L);
 
-            System.out.println(
-                    "Node Name : " + nodeName);
+                        registry.rebind(
+                                        "ClockService",
+                                        clockService);
 
-            System.out.println(
-                    "Port      : " + port);
+                        System.out.println(
+                                        "[RMI] ClockService registered.");
 
-            System.out.println(
-                    "Role      : Worker");
+                        // ------------------------------------------
+                        // ELECTION SERVICE
+                        // ------------------------------------------
 
-            System.out.println(
-                    "======================================");
+                        ElectionService electionService = new ElectionServiceImpl(
+                                        nodeId,
+                                        nodeName);
 
-            // --------------------------------------
-            // NODE-01 becomes initial coordinator
-            // --------------------------------------
+                        registry.rebind(
+                                        "ElectionService",
+                                        electionService);
 
-            if (nodeId.equals("NODE-01")) {
+                        System.out.println(
+                                        "[RMI] ElectionService registered.");
 
-                List<CoordinatorServiceImpl.WorkerInfo> workers = new ArrayList<>();
+                        // ------------------------------------------
+                        // NODE INFORMATION
+                        // ------------------------------------------
 
-                workers.add(
-                        new CoordinatorServiceImpl.WorkerInfo(
-                                "NODE-01",
-                                "Arjun",
-                                1099));
+                        System.out.println();
+                        System.out.println("----------------------------------------------");
+                        System.out.println("Node is READY");
+                        System.out.println("----------------------------------------------");
 
-                workers.add(
-                        new CoordinatorServiceImpl.WorkerInfo(
-                                "NODE-02",
-                                "Sarthak",
-                                1100));
+                        System.out.println(
+                                        "Node Name : " + nodeName);
 
-                workers.add(
-                        new CoordinatorServiceImpl.WorkerInfo(
-                                "NODE-03",
-                                "Amar",
-                                1101));
+                        System.out.println(
+                                        "Node ID   : " + nodeId);
 
-                workers.add(
-                        new CoordinatorServiceImpl.WorkerInfo(
-                                "NODE-04",
-                                "Kaner",
-                                1102));
+                        System.out.println(
+                                        "RMI Port  : " + port);
 
-                workers.add(
-                        new CoordinatorServiceImpl.WorkerInfo(
-                                "NODE-05",
-                                "Jogi",
-                                1103));
+                        System.out.println();
+                        System.out.println("Registered Services:");
+                        System.out.println("  [OK] TaskService");
+                        System.out.println("  [OK] ClockService");
+                        System.out.println("  [OK] ElectionService");
 
-                CoordinatorService coordinator = new CoordinatorServiceImpl(workers);
+                        System.out.println();
+                        System.out.println(
+                                        "Node " + nodeName +
+                                                        " is waiting for requests...");
 
-                registry.rebind(
-                        "CoordinatorService",
-                        coordinator);
+                        System.out.println(
+                                        "==============================================");
 
-                System.out.println();
-                System.out.println(
-                        "******** INITIAL LEADER ********");
+                } catch (Exception e) {
 
-                System.out.println(
-                        "Leader : Arjun");
+                        System.err.println();
+                        System.err.println(
+                                        "[ERROR] Failed to start node "
+                                                        + nodeName);
 
-                System.out.println(
-                        "Node   : NODE-01");
-
-                System.out.println(
-                        "********************************");
-            }
-
-        } catch (Exception e) {
-
-            System.err.println(
-                    "Node exception: " + e);
-
-            e.printStackTrace();
+                        e.printStackTrace();
+                }
         }
-    }
 }
