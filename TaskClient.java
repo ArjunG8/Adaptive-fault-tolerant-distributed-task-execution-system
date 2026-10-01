@@ -2,200 +2,135 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
 
 public class TaskClient {
 
-        public static void main(String[] args) {
+    public static void main(String[] args) {
 
-                try {
+        try {
 
-                        Registry registry = LocateRegistry.getRegistry(
-                                        "localhost",
-                                        1099);
+            Registry registry =
+                    LocateRegistry.getRegistry(
+                            "localhost",
+                            1099);
 
-                        CoordinatorService coordinator = (CoordinatorService) registry.lookup(
-                                        "CoordinatorService");
+            CoordinatorService coordinator =
+                    (CoordinatorService) registry.lookup(
+                            "CoordinatorService");
 
-                        System.out.println();
-                        System.out.println(
-                                        "==========================================");
+            System.out.println();
+            System.out.println(
+                    "TECHNOVA DISTRIBUTED TASK SYSTEM");
+            System.out.println(
+                    "Leader: Arjun");
+            System.out.println(
+                    "5 Nodes x 3 Worker Threads");
+            System.out.println(
+                    "Concurrent Task Burst: 20 Tasks");
+            System.out.println();
 
-                        System.out.println(
-                                        "   TECHNOVA DISTRIBUTED TASK SYSTEM");
+            String[] taskTypes = {
+                    "WORD_COUNT",
+                    "UPPERCASE"
+            };
 
-                        System.out.println(
-                                        "   Leader: Arjun");
+            String[] inputs = {
+                    "Distributed systems enable resource sharing",
+                    "Java RMI supports remote method invocation",
+                    "TECHNOVA manages distributed tasks",
+                    "Multithreading improves concurrent execution",
+                    "Load balancing distributes workload",
+                    "Fault tolerance improves reliability",
+                    "Distributed nodes communicate remotely",
+                    "Concurrent clients submit multiple tasks",
+                    "RMI enables distributed object communication",
+                    "Task scheduling improves system performance",
+                    "Distributed computing uses multiple nodes",
+                    "Remote services process client requests",
+                    "Worker nodes execute assigned tasks",
+                    "Round robin distributes tasks cyclically",
+                    "Concurrent execution reduces waiting time",
+                    "TECHNOVA uses Java distributed computing",
+                    "Multiple workers process tasks",
+                    "Task coordination manages workers",
+                    "Fault handling improves availability",
+                    "Distributed task processing is scalable"
+            };
 
-                        System.out.println(
-                                        "   5 Nodes × 3 Worker Threads");
+            ExecutorService executor =
+                    Executors.newFixedThreadPool(10);
 
-                        System.out.println(
-                                        "   Concurrent Task Burst: 20 Tasks");
+            long startTime =
+                    System.currentTimeMillis();
 
-                        System.out.println(
-                                        "==========================================");
+            Future<?>[] futures =
+                    new Future<?>[20];
 
-                        /*
-                         * Client-side thread pool.
-                         *
-                         * This creates multiple requests
-                         * simultaneously.
-                         */
-                        ExecutorService clientPool = Executors.newFixedThreadPool(10);
+            for (int i = 0; i < 20; i++) {
 
-                        String[] inputs = {
+                final int index = i;
 
-                                        "distributed computing is interesting",
+                futures[i] = executor.submit(() -> {
 
-                                        "java rmi distributed system",
+                    String taskId =
+                            String.format(
+                                    "TASK-%03d",
+                                    index + 1);
 
-                                        "fault tolerant task execution",
+                    String taskType =
+                            taskTypes[index % 2];
 
-                                        "load balancing between workers",
+                    String input =
+                            inputs[index];
 
-                                        "leader election in distributed systems",
+                    try {
 
-                                        "multithreading improves concurrency",
-
-                                        "replication protects task state",
-
-                                        "clock synchronization orders events",
-
-                                        "map reduce parallel processing",
-
-                                        "distributed task scheduling",
-
-                                        "parallel processing improves throughput",
-
-                                        "remote method invocation communication",
-
-                                        "distributed nodes share workload",
-
-                                        "worker threads execute tasks",
-
-                                        "fault recovery in distributed systems",
-
-                                        "dynamic task allocation",
-
-                                        "concurrent programming with java",
-
-                                        "distributed computing laboratory",
-
-                                        "task scheduling and load balancing",
-
-                                        "five node distributed architecture"
-                        };
-
-                        long startTime = System.currentTimeMillis();
-
-                        /*
-                         * Submit 20 tasks.
-                         */
-                        for (int i = 0; i < inputs.length; i++) {
-
-                                final int taskNumber = i + 1;
-
-                                final String taskId = String.format(
-                                                "TASK-%03d",
-                                                taskNumber);
-
-                                final String input = inputs[i];
-
-                                /*
-                                 * Alternate between two task types.
-                                 */
-                                final String taskType = (i % 2 == 0)
-                                                ? "WORD_COUNT"
-                                                : "UPPERCASE";
-
-                                clientPool.submit(() -> {
-
-                                        try {
-
-                                                System.out.println(
-                                                                "[CLIENT] Sending "
-                                                                                + taskId);
-
-                                                String result = coordinator.submitTask(
-                                                                taskId,
-                                                                taskType,
-                                                                input);
-
-                                                System.out.println(
-                                                                "[CLIENT] "
-                                                                                + taskId
-                                                                                + " RESULT: "
-                                                                                + result);
-
-                                        } catch (Exception e) {
-
-                                                System.out.println(
-                                                                "[CLIENT] "
-                                                                                + taskId
-                                                                                + " FAILED");
-
-                                                System.out.println(
-                                                                e.getMessage());
-                                        }
-                                });
-                        }
-
-                        /*
-                         * Stop accepting new client tasks.
-                         */
-                        clientPool.shutdown();
-
-                        /*
-                         * Wait for all 20 client requests
-                         * to finish.
-                         */
-                        boolean completed = clientPool.awaitTermination(
-                                        60,
-                                        TimeUnit.SECONDS);
-
-                        long endTime = System.currentTimeMillis();
-
-                        System.out.println();
-                        System.out.println(
-                                        "==========================================");
-
-                        if (completed) {
-
-                                System.out.println(
-                                                "ALL TASKS COMPLETED");
-
-                        } else {
-
-                                System.out.println(
-                                                "TIMEOUT: Some tasks did not finish");
-                        }
+                        String result =
+                                coordinator.submitTask(
+                                        taskId,
+                                        taskType,
+                                        input);
 
                         System.out.println(
-                                        "Total execution time = "
-                                                        + (endTime - startTime)
-                                                        + " ms");
+                                taskId
+                                        + " -> "
+                                        + result);
+
+                    } catch (Exception e) {
 
                         System.out.println(
-                                        "Tasks submitted = "
-                                                        + inputs.length);
+                                taskId
+                                        + " -> ERROR: "
+                                        + e.getMessage());
+                    }
+                });
+            }
 
-                        System.out.println(
-                                        "Nodes available = 5");
+            for (Future<?> future : futures) {
+                future.get();
+            }
 
-                        System.out.println(
-                                        "Threads per node = 3");
+            executor.shutdown();
 
-                        System.out.println(
-                                        "==========================================");
+            long endTime =
+                    System.currentTimeMillis();
 
-                } catch (Exception e) {
+            System.out.println();
+            System.out.println(
+                    "All tasks completed.");
+            System.out.println(
+                    "Total execution time: "
+                            + (endTime - startTime)
+                            + " ms");
 
-                        System.err.println(
-                                        "Client exception: "
-                                                        + e);
+        } catch (Exception e) {
 
-                        e.printStackTrace();
-                }
+            System.out.println(
+                    "Client exception: "
+                            + e);
+
+            e.printStackTrace();
         }
+    }
 }

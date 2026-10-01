@@ -9,21 +9,11 @@ public class CoordinatorServiceImpl
         implements CoordinatorService {
 
     private final List<WorkerInfo> workers;
-
-    /*
-     * Thread-safe counter.
-     *
-     * Multiple client threads can call the
-     * coordinator at the same time.
-     */
     private final AtomicInteger nextWorker = new AtomicInteger(0);
 
-    public CoordinatorServiceImpl(
-            List<WorkerInfo> workers)
+    public CoordinatorServiceImpl(List<WorkerInfo> workers)
             throws RemoteException {
-
         super();
-
         this.workers = workers;
     }
 
@@ -35,27 +25,14 @@ public class CoordinatorServiceImpl
             throws RemoteException {
 
         if (workers.isEmpty()) {
-
             return "No workers available.";
         }
 
         System.out.println();
-        System.out.println(
-                "------------------------------------------");
+        System.out.println("[COORDINATOR] TASK RECEIVED");
+        System.out.println("Task ID   : " + taskId);
+        System.out.println("Task Type : " + taskType);
 
-        System.out.println(
-                "[COORDINATOR] TASK RECEIVED");
-
-        System.out.println(
-                "Task ID   : " + taskId);
-
-        System.out.println(
-                "Task Type : " + taskType);
-
-        /*
-         * Select next worker using thread-safe
-         * round-robin scheduling.
-         */
         int startIndex = Math.floorMod(
                 nextWorker.getAndIncrement(),
                 workers.size());
@@ -68,23 +45,23 @@ public class CoordinatorServiceImpl
                     % workers.size();
 
             WorkerInfo worker = workers.get(index);
-
             attempts++;
 
             try {
-
                 System.out.println(
                         "[COORDINATOR] "
                                 + taskId
                                 + " -> "
                                 + worker.name);
 
-                Registry registry = LocateRegistry.getRegistry(
-                        "localhost",
-                        worker.port);
+                Registry registry =
+                        LocateRegistry.getRegistry(
+                                "localhost",
+                                worker.port);
 
-                TaskService taskService = (TaskService) registry.lookup(
-                        "TaskService");
+                TaskService taskService =
+                        (TaskService) registry.lookup(
+                                "TaskService");
 
                 return taskService.executeTask(
                         taskId,
