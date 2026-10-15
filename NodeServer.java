@@ -1,147 +1,278 @@
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.List;
 
 public class NodeServer {
 
     public static void main(String[] args) {
 
-                if (args.length < 3) {
-                        System.out.println(
-                                        "Usage: java NodeServer <NodeName> <NodeId> <Port>");
-                        return;
-                }
+        if (args.length < 3) {
 
-                String nodeName = args[0];
-                String nodeId = args[1];
-                int port = Integer.parseInt(args[2]);
+            System.out.println(
+                    "Usage: java NodeServer <NodeName> <NodeId> <Port>");
+
+            return;
+        }
+
+        String nodeName = args[0];
+        String nodeId = args[1];
+        int port = Integer.parseInt(args[2]);
 
         try {
 
-                        System.out.println();
-                        System.out.println("==============================================");
-                        System.out.println("      TECHNOVA DISTRIBUTED TASK SYSTEM");
-                        System.out.println("==============================================");
+            Registry registry;
 
-                        System.out.println("Starting Node...");
-                        System.out.println("Node Name : " + nodeName);
-                        System.out.println("Node ID   : " + nodeId);
-                        System.out.println("Port      : " + port);
+            try {
 
-                        // ------------------------------------------
-                        // START RMI REGISTRY
-                        // ------------------------------------------
+                registry =
+                        LocateRegistry.createRegistry(port);
 
-            Registry registry =
-                    LocateRegistry.createRegistry(port);
+                System.out.println(
+                        "RMI registry created on port "
+                                + port);
 
-                        System.out.println(
-                                        "[RMI] Registry started on port " + port);
+            } catch (Exception e) {
 
-                        // ------------------------------------------
-                        // TASK SERVICE
-                        // ------------------------------------------
+                registry =
+                        LocateRegistry.getRegistry(port);
+            }
 
-                        TaskService taskService =
-                                        new TaskServiceImpl(
-                                                        nodeName,
-                                                        nodeId);
+            /*
+             * Task Service
+             */
+            TaskService taskService =
+                    new TaskServiceImpl(
+                            nodeId,
+                            nodeName
+                    );
 
-                        registry.rebind(
-                                        "TaskService",
-                                        taskService);
+            registry.rebind(
+                    "TaskService",
+                    taskService
+            );
 
-                        System.out.println(
-                                        "[RMI] TaskService registered.");
+            /*
+             * Clock Service
+             */
+            ClockService clockService =
+                    new ClockServiceImpl(
+                            nodeId,
+                            System.currentTimeMillis()
+                    );
 
-                        // ------------------------------------------
-                        // CLOCK SERVICE
-                        // ------------------------------------------
+            registry.rebind(
+                    "ClockService",
+                    clockService
+            );
 
-                        ClockService clockService =
-                                        new ClockServiceImpl(
-                                                        nodeName,
-                                                        0L);
+            /*
+             * Election Service
+             */
+            ElectionService electionService =
+                    new ElectionServiceImpl(
+                            nodeId,
+                            nodeName
+                    );
 
-                        registry.rebind(
-                                        "ClockService",
-                                        clockService);
+            registry.rebind(
+                    "ElectionService",
+                    electionService
+            );
 
-                        System.out.println(
-                                        "[RMI] ClockService registered.");
+            /*
+             * Data Service
+             */
+            DataService dataService =
+                    new DataServiceImpl();
 
-                        // ------------------------------------------
-                        // ELECTION SERVICE
-                        // ------------------------------------------
+            registry.rebind(
+                    "DataService",
+                    dataService
+            );
 
-                        ElectionService electionService =
-                                        new ElectionServiceImpl(
-                                                        nodeId,
-                                                        nodeName);
+            /*
+             * Load Balance Service
+             */
+            int maxTasks;
+            int totalEnergy;
+            int processingPower;
+            double predictedLoad;
 
-                        registry.rebind(
-                                        "ElectionService",
-                                        electionService);
+            if (nodeId.equals("NODE-01")) {
 
-                        System.out.println(
-                                        "[RMI] ElectionService registered.");
+                maxTasks = 5;
+                totalEnergy = 100;
+                processingPower = 100;
+                predictedLoad = 0.25;
 
-                        // ------------------------------------------
-                        // DATA SERVICE
-                        // ------------------------------------------
+            } else if (nodeId.equals("NODE-02")) {
 
-                        DataService dataService =
-                                        new DataServiceImpl();
+                maxTasks = 4;
+                totalEnergy = 100;
+                processingPower = 75;
+                predictedLoad = 0.60;
 
-                        registry.rebind(
-                                        "DataService",
-                                        dataService);
+            } else if (nodeId.equals("NODE-03")) {
 
-                        System.out.println(
-                                        "[RMI] DataService registered.");
+                maxTasks = 6;
+                totalEnergy = 120;
+                processingPower = 90;
+                predictedLoad = 0.35;
 
-                        // ------------------------------------------
-                        // NODE INFORMATION
-                        // ------------------------------------------
+            } else if (nodeId.equals("NODE-04")) {
 
-                        System.out.println();
-                        System.out.println("----------------------------------------------");
-                        System.out.println("Node is READY");
-                        System.out.println("----------------------------------------------");
+                maxTasks = 3;
+                totalEnergy = 80;
+                processingPower = 60;
+                predictedLoad = 0.45;
 
-                        System.out.println(
-                                        "Node Name : " + nodeName);
+            } else {
 
-                        System.out.println(
-                                        "Node ID   : " + nodeId);
+                maxTasks = 5;
+                totalEnergy = 110;
+                processingPower = 80;
+                predictedLoad = 0.70;
+            }
 
-                        System.out.println(
-                                        "RMI Port  : " + port);
+            LoadBalanceService loadBalanceService =
+                    new LoadBalanceServiceImpl(
+                            nodeId,
+                            nodeName,
+                            maxTasks,
+                            totalEnergy,
+                            processingPower,
+                            predictedLoad
+                    );
 
-                        System.out.println();
-                        System.out.println("Registered Services:");
-                        System.out.println("  [OK] TaskService");
-                        System.out.println("  [OK] ClockService");
-                        System.out.println("  [OK] ElectionService");
-                        System.out.println("  [OK] DataService");
+            registry.rebind(
+                    "LoadBalanceService",
+                    loadBalanceService
+            );
 
-                        System.out.println();
-                        System.out.println(
-                                        "Node " + nodeName +
-                                                        " is waiting for requests...");
+            /*
+             * Coordinator Service
+             */
+            if (nodeId.equals("NODE-01")) {
 
-                        System.out.println(
-                                        "==============================================");
+                java.util.List<CoordinatorServiceImpl.WorkerInfo> workers =
+                        new java.util.ArrayList<>();
+
+                workers.add(
+                        new CoordinatorServiceImpl.WorkerInfo(
+                                "NODE-01",
+                                "Arjun",
+                                1099
+                        )
+                );
+
+                workers.add(
+                        new CoordinatorServiceImpl.WorkerInfo(
+                                "NODE-02",
+                                "Sarthak",
+                                1100
+                        )
+                );
+
+                workers.add(
+                        new CoordinatorServiceImpl.WorkerInfo(
+                                "NODE-03",
+                                "Amar",
+                                1101
+                        )
+                );
+
+                workers.add(
+                        new CoordinatorServiceImpl.WorkerInfo(
+                                "NODE-04",
+                                "Kaner",
+                                1102
+                        )
+                );
+
+                workers.add(
+                        new CoordinatorServiceImpl.WorkerInfo(
+                                "NODE-05",
+                                "Jogi",
+                                1103
+                        )
+                );
+
+                CoordinatorService coordinatorService =
+                        new CoordinatorServiceImpl(
+                                workers
+                        );
+
+                registry.rebind(
+                        "CoordinatorService",
+                        coordinatorService
+                );
+            }
+
+            /*
+             * Experiment 8
+             *
+             * Configuration is determined internally.
+             * The startup command remains unchanged.
+             */
+            String serviceMode;
+            int peerPort;
+
+            if (nodeId.equals("NODE-01")) {
+
+                serviceMode = "PRIMARY";
+                peerPort = 1100;
+
+            } else if (nodeId.equals("NODE-02")) {
+
+                serviceMode = "BACKUP";
+                peerPort = 1099;
+
+            } else {
+
+                serviceMode = "NORMAL";
+                peerPort = 1099;
+            }
+
+            TaskStateService taskStateService =
+                    new TaskStateServiceImpl(
+                            nodeId,
+                            serviceMode,
+                            peerPort
+                    );
+
+            registry.rebind(
+                    "TaskStateService",
+                    taskStateService
+            );
+
+            /*
+             * Startup information
+             */
+            System.out.println();
+
+            System.out.println(
+                    "Node ready: "
+                            + nodeName
+                            + " ("
+                            + nodeId
+                            + ")"
+            );
+
+            System.out.println(
+                    "Distributed services registered successfully."
+            );
+
+            System.out.println(
+                    "Node is ready to accept requests."
+            );
 
         } catch (Exception e) {
 
-                        System.err.println();
-                        System.err.println(
-                                        "[ERROR] Failed to start node "
-                                                        + nodeName);
+            System.out.println(
+                    "Failed to start node: "
+                            + nodeName
+            );
 
-                        e.printStackTrace();
-                }
+            e.printStackTrace();
         }
+    }
 }
